@@ -1,6 +1,7 @@
 package com.icy404.observer.snapshot;
 
 import com.icy404.observer.TickManager;
+import com.icy404.observer.profile.HomeProfiler;
 import com.icy404.observer.state.ObserverState;
 import com.icy404.observer.util.LogUtil;
 import java.util.Map;
@@ -22,7 +23,6 @@ public final class Snapshotter {
     private static final Map<UUID, Long> LAST_SNAPSHOT_TICK = new ConcurrentHashMap<>();
 
     private Snapshotter() {
-
     }
 
     public static void init() {
@@ -34,12 +34,12 @@ public final class Snapshotter {
             return;
         }
 
-        if (!isActive(player)) {
+        if (!HomeProfiler.isActive(player)) {
             return;
         }
 
         ServerWorld world = player.getServerWorld();
-        BlockPos homeAnchor = getHomeAnchor(player);
+        BlockPos homeAnchor = HomeProfiler.getHomeAnchor(player).orElse(null);
         if (homeAnchor == null) {
             return;
         }
@@ -61,20 +61,8 @@ public final class Snapshotter {
         LogUtil.info("Captured snapshot for " + player.getName().getString());
     }
 
-    private static boolean isActive(ServerPlayerEntity player) {
-        return player.isAlive() && !player.isSpectator() && !player.isRemoved();
-    }
-
     private static boolean isNearHome(ServerPlayerEntity player, BlockPos anchor) {
         double distanceSq = player.squaredDistanceTo(anchor.getX() + 0.5, anchor.getY() + 0.5, anchor.getZ() + 0.5);
         return distanceSq <= HOME_RADIUS * HOME_RADIUS;
-    }
-
-    private static BlockPos getHomeAnchor(ServerPlayerEntity player) {
-        BlockPos spawn = player.getSpawnPointPosition();
-        if (spawn != null && player.getSpawnPointDimension().equals(player.getWorld().getRegistryKey())) {
-            return spawn;
-        }
-        return player.getServerWorld().getSpawnPos();
     }
 }

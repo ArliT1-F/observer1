@@ -1,6 +1,7 @@
 package com.icy404.observer.state;
 
 import java.util.HashMap;
+import com.icy404.observer.profile.HomeProfiler;
 import com.icy404.observer.snapshot.StructureSnapshot;
 import java.util.ArrayList;
 import java.util.List;
@@ -16,6 +17,7 @@ public final class ObserverState extends PersistentState {
 
     private final Map<UUID, NbtCompound> playerData = new HashMap<>();
     private final Map<UUID, List<StructureSnapshot>> snapshotHistory = new HashMap<>();
+    private final Map<UUID, HomeProfiler.HomeProfile> homeProfiles = new HashMap<>();
 
     public static ObserverState get(ServerWorld world) {
         return world.getPersistentStateManager().getOrCreate(
@@ -50,6 +52,15 @@ public final class ObserverState extends PersistentState {
                 // Skip malformed UUIDs.
             }
         }
+        NbtCompound profiles = nbt.getCompound("homeProfiles");
+        for (String key : profiles.getKeys()) {
+            try {
+                UUID playerId = UUID.fromString(key);
+                state.homeProfiles.put(playerId, HomeProfiler.fromNbt(profiles.getCompound(key)));
+            } catch (IllegalArgumentException ignored) {
+                // Skip malformed UUIDs.
+            }
+        }
         return state;
     }
 
@@ -61,6 +72,10 @@ public final class ObserverState extends PersistentState {
     public void setPlayerData(UUID playerId, NbtCompound data) {
         playerData.put(playerId, data.copy());
         markDirty();
+    }
+
+    public HomeProfiler.HomeProfile getHomeProfile(UUID playerId) {
+        return homeProfiles.computeIfAbsent(playerId, id -> new HomeProfiler.HomeProfile());
     }
 
     public List<StructureSnapshot> getSnapshots(UUID playerId) {
@@ -93,6 +108,11 @@ public final class ObserverState extends PersistentState {
             snapshots.put(entry.getKey().toString(), list);
         }
         nbt.put("snapshots", snapshots);
+        NbtCompound profiles = new NbtCompound();
+        for (Map.Entry<UUID, HomeProfiler.HomeProfile> entry : homeProfiles.entrySet()) {
+            profiles.put(entry.getKey().toString(), HomeProfiler.toNbt(entry.getValue()));
+        }
+        nbt.put("homeProfiles", profiles);
         return nbt;
     }
 }

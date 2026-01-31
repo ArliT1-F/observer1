@@ -2,13 +2,13 @@
 	"required": true,
 	"package": "com.icy404.observer.mixin",
 	"compatibilityLevel": "JAVA_17",
-	"mixins":[],
+	"mixins":[
+		"BlockItemMixin",
+		"ServerPlayerEntityMixin"
+	],
 	"client":[],
 	"server":[],
 	"injectors": {
 		"defaultRequire": 1
-	},
-	"overwrites": {
-		"requireAnnotations": true
 	}
 }

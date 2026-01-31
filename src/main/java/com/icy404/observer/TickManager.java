@@ -11,16 +11,14 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
 
-
 public final class TickManager {
     private static final Map<Identifier, BuildQueue> WORLD_QUEUES = new ConcurrentHashMap<>();
     private static final List<Consumer<ServerPlayerEntity>> PLAYER_TICK_HANDLERS = new CopyOnWriteArrayList<>();
 
     private TickManager() {
-
     }
 
-    public static void registerPlayerTick(Consumer<ServerPlayerEntity>handler) {
+    public static void registerPlayerTick(Consumer<ServerPlayerEntity> handler) {
         PLAYER_TICK_HANDLERS.add(handler);
     }
 
