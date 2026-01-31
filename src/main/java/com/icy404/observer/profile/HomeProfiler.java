@@ -14,7 +14,6 @@ import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 
-
 public final class HomeProfiler {
     private static final int GRID_SIZE = 8;
     private static final int HOME_SCORE_THRESHOLD = 600;

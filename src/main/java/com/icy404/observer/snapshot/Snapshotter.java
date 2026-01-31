@@ -11,7 +11,6 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
 
-
 public final class Snapshotter {
     private static final int SNAPSHOT_INTERVAL_TICKS = 20 * 120;
     private static final int MAX_SNAPSHOTS = 16;
@@ -55,7 +54,8 @@ public final class Snapshotter {
             return;
         }
 
-        StructureSnapshot snapshot = StructureSnapshot.capture(world, homeAnchor, SNAPSHOT_RADIUS, SNAPSHOT_MIN_Y, SNAPSHOT_MAX_Y);
+        StructureSnapshot snapshot = StructureSnapshot.capture(world, homeAnchor, SNAPSHOT_RADIUS, SNAPSHOT_MIN_Y,
+                SNAPSHOT_MAX_Y);
         ObserverState.get(world).addSnapshot(playerId, snapshot, MAX_SNAPSHOTS);
         LAST_SNAPSHOT_TICK.put(playerId, worldTime);
         LogUtil.info("Captured snapshot for " + player.getName().getString());

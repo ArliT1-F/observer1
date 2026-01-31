@@ -53,7 +53,8 @@ public final class StructureSnapshot {
         return mask.clone();
     }
 
-    public static StructureSnapshot capture(ServerWorld world, BlockPos anchor, int radius, int minYOffset, int maxYOffset) {
+    public static StructureSnapshot capture(ServerWorld world, BlockPos anchor, int radius, int minYOffset,
+            int maxYOffset) {
         BlockPos min = anchor.add(-radius, minYOffset, -radius);
         BlockPos max = anchor.add(radius, maxYOffset, radius);
 

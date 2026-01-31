@@ -21,10 +21,9 @@ public final class ObserverState extends PersistentState {
 
     public static ObserverState get(ServerWorld world) {
         return world.getPersistentStateManager().getOrCreate(
-            ObserverState::fromNbt,
-            ObserverState::new,
-            DATA_KEY
-        );
+                ObserverState::fromNbt,
+                ObserverState::new,
+                DATA_KEY);
     }
 
     public static ObserverState fromNbt(NbtCompound nbt) {
