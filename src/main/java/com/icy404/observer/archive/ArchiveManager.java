@@ -7,6 +7,7 @@ import com.icy404.observer.profile.HomeProfiler;
 import com.icy404.observer.snapshot.StructureSnapshot;
 import com.icy404.observer.state.ObserverState;
 import com.icy404.observer.util.LogUtil;
+import com.icy404.observer.util.VisibilityUtil;
 import com.icy404.observer.world.BuildQueue;
 import java.util.List;
 import java.util.Optional;
@@ -16,6 +17,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Box;
 
 public final class ArchiveManager {
     private static final int MAX_ATTEMPTS = 32;
@@ -45,8 +47,9 @@ public final class ArchiveManager {
         if (state.isArchiveAttemptPasted(player.getUuid(), record.id())) {
             return;
         }
-        placeAttemptInArchive(world, player, snapshot, record, archiveOrigin.get());
-        state.markArchiveAttemptPasted(player.getUuid(), record.id());
+        if (placeAttemptInArchive(world, player, snapshot, record, archiveOrigin.get())) {
+            state.markArchiveAttemptPasted(player.getUuid(), record.id());
+        }
     }
 
     private static void handlePlayer(ServerPlayerEntity player) {
@@ -78,8 +81,9 @@ public final class ArchiveManager {
             StructureSnapshot snapshot = record.snapshotIndex() >= 0 && record.snapshotIndex() < snapshots.size()
                 ? snapshots.get(record.snapshotIndex())
                 : latestSnapshot;
-            placeAttemptInArchive(world, player, snapshot, record, archiveOrigin.get());
+            if (placeAttemptInArchive(world, player, snapshot, record, archiveOrigin.get())) {
             state.markArchiveAttemptPasted(player.getUuid(), record.id());
+            }
         }
     }
 
@@ -113,7 +117,7 @@ public final class ArchiveManager {
         return origin;
     }
 
-    private static void placeAttemptInArchive(ServerWorld world, ServerPlayerEntity player, StructureSnapshot snapshot, GhostHouseManager.AttemptRecord record, BlockPos archiveOrigin) {
+    private static boolean placeAttemptInArchive(ServerWorld world, ServerPlayerEntity player, StructureSnapshot snapshot, GhostHouseManager.AttemptRecord record, BlockPos archiveOrigin) {
         int width = snapshot.max().getX() - snapshot.min().getX() + 1;
         int height = snapshot.max().getY() - snapshot.min().getY() + 1;
         int depth = snapshot.max().getZ() - snapshot.min().getZ() + 1;
@@ -124,12 +128,17 @@ public final class ArchiveManager {
 
         int index = record.id() - 1;
         if (index < 0 || index >= MAX_ATTEMPTS) {
-            return;
+            return false;
         }
         int col = index % COLUMNS;
         int row = index / COLUMNS;
         BlockPos cellMin = archiveOrigin.add(col * cellWidth, 0, row * cellDepth);
         BlockPos cellMax = cellMin.add(cellWidth - 1, cellHeight - 1, cellDepth - 1);
+        Box cellBox = VisibilityUtil.boxFrom(cellMin, cellMax);
+        Box archiveBox = archiveBounds(snapshot, archiveOrigin);
+        if (VisibilityUtil.isAreaObserved(world, cellBox) || VisibilityUtil.isAnyPlayerInside(world, archiveBox)) {
+            return false;
+        }
 
         BuildQueue queue = TickManager.getQueue(world);
         carveVolume(queue, cellMin, cellMax);
@@ -151,6 +160,23 @@ public final class ArchiveManager {
         }
 
         LogUtil.info("Archived ghost house " + record.id() + " for " + player.getName().getString());
+        return true;
+    }
+
+    private static Box archiveBounds(StructureSnapshot snapshot, BlockPos origin) {
+        private static Box archiveBounds(StructureSnapshot snapshot, BlockPos origin) {
+        int width = snapshot.max().getX() - snapshot.min().getX() + 1;
+        int height = snapshot.max().getY() - snapshot.min().getY() + 1;
+        int depth = snapshot.max().getZ() - snapshot.min().getZ() + 1;
+        int cellWidth = width + PADDING;
+        int cellHeight = height + PADDING;
+        int cellDepth = depth + PADDING;
+        int rows = (int) Math.ceil(MAX_ATTEMPTS / (double) COLUMNS);
+        int totalWidth = cellWidth * COLUMNS;
+        int totalDepth = cellDepth * rows;
+        int totalHeight = cellHeight;
+        BlockPos max = origin.add(totalWidth - 1, totalHeight - 1, totalDepth - 1);
+        return VisibilityUtil.boxFrom(origin, max);
     }
 
     private static void carveVolume(BuildQueue queue, BlockPos min, BlockPos max) {

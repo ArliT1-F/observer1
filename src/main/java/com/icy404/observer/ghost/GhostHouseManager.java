@@ -5,6 +5,7 @@ import com.icy404.observer.profile.HomeProfiler;
 import com.icy404.observer.snapshot.StructureSnapshot;
 import com.icy404.observer.state.ObserverState;
 import com.icy404.observer.util.LogUtil;
+import com.icy404.observer.util.VisibilityUtil;
 import java.util.List;
 import java.util.Optional;
 import java.util.Random;
@@ -21,6 +22,7 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.Heightmap;
@@ -60,7 +62,7 @@ public final class GhostHouseManager {
         }
 
         StructureSnapshot latestSnapshot = snapshots.get(snapshots.size() - 1);
-        int attemptId = state.incrementAttemptCount(player.getUuid());
+        int attemptId = state.getAttemptCount(player.getUuid()) + 1;
         double fidelity = Math.min(0.99, 0.30 + (attemptId - 1) * 0.05);
 
         Random random = new Random(seed(player.getUuid(), day, attemptId));
@@ -75,6 +77,9 @@ public final class GhostHouseManager {
             if (!isAreaClear(world, latestSnapshot, anchor)) {
                 continue;
             }
+            if (isAreaObserved(world, latestSnapshot, anchor)) {
+                return;
+            }
 
             List<GhostHousePlanner.Placement> placements = GhostHousePlanner.plan(
                 world.getRegistryManager().getWrapperOrThrow(RegistryKeys.BLOCK),
@@ -87,7 +92,7 @@ public final class GhostHouseManager {
                 world.setBlockState(placement.pos(), placement.state(), 3);
             }
             placeMarker(world, placements, fidelity, attemptId);
-
+            state.incrementAttemptCount(player.getUuid());
             AttemptRecord record = new AttemptRecord(attemptId, anchor, fidelity, snapshots.size() - 1, day);
             state.addAttemptRecord(player.getUuid(), record);
             state.markAttemptedToday(player.getUuid(), day);
@@ -99,6 +104,13 @@ public final class GhostHouseManager {
         state.markAttemptedToday(player.getUuid(), day);
     }
 
+    private static boolean isAreaObserved(ServerWorld world, StructureSnapshot snapshot, BlockPos anchor) {
+        BlockPos offset = anchor.subtract(snapshot.anchor());
+        BlockPos min = snapshot.min().add(offset);
+        BlockPos max = snapshot.max().add(offset);
+        Box target = VisibilityUtil.boxFrom(min, max);
+        return VisibilityUtil.isAreaObserved(world, target);
+    }
     private static boolean isAreaClear(ServerWorld world, StructureSnapshot snapshot, BlockPos anchor) {
         BlockPos offset = anchor.subtract(snapshot.anchor());
         BlockPos min = snapshot.min().add(offset);

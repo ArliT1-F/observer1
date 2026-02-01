@@ -145,6 +145,10 @@ public final class ObserverState extends PersistentState {
         return homeProfiles.computeIfAbsent(playerId, id -> new HomeProfiler.HomeProfile());
     }
 
+    public int getAttemptCount(UUID playerId) {
+        int next = attemptCounts.getOrDefault(playerId, 0);
+    }
+    
     public int incrementAttemptCount(UUID playerId) {
         int next = attemptCounts.getOrDefault(playerId, 0) + 1;
         attemptCounts.put(playerId, next);
