@@ -1,5 +1,6 @@
 package com.icy404.observer;
 
+import com.icy404.observer.ghost.GhostHouseManager;
 import com.icy404.observer.profile.HomeProfiler;
 import com.icy404.observer.snapshot.Snapshotter;
 import com.icy404.observer.state.ObserverState;
@@ -21,12 +22,14 @@ public final class ObserverMod implements ModInitializer {
         LogUtil.info("Observer mod initializing.");
 
         ServerTickEvents.END_SERVER_TICK.register(TickManager::tick);
+        ServerTickEvents.END_SERVER_TICK.register(GhostHouseManager::onServerTick);
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> TickManager.reset());
         Snapshotter.init();
         HomeProfiler.init();
 
-        PlayerBlockBreakEvents.AFTER
-                .register((world, player, pos, state, blockEntity) -> HomeProfiler.recordBlockBreak(player));
+        PlayerBlockBreakEvents.AFTER.register((world, player, pos, state, blockEntity) ->
+            HomeProfiler.recordBlockBreak(player)
+        );
         UseBlockCallback.EVENT.register((player, world, hand, hitResult) -> {
             HomeProfiler.recordUseBlock(player);
             return ActionResult.PASS;
