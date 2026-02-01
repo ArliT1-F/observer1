@@ -1,5 +1,6 @@
 package com.icy404.observer.ghost;
 
+import com.icy404.observer.archive.ArchiveManager;
 import com.icy404.observer.profile.HomeProfiler;
 import com.icy404.observer.snapshot.StructureSnapshot;
 import com.icy404.observer.state.ObserverState;
@@ -87,8 +88,10 @@ public final class GhostHouseManager {
             }
             placeMarker(world, placements, fidelity, attemptId);
 
-            state.addAttemptRecord(player.getUuid(), new AttemptRecord(attemptId, anchor, fidelity, snapshots.size() - 1, day));
+            AttemptRecord record = new AttemptRecord(attemptId, anchor, fidelity, snapshots.size() - 1, day);
+            state.addAttemptRecord(player.getUuid(), record);
             state.markAttemptedToday(player.getUuid(), day);
+            ArchiveManager.onGhostHouseSpawned(world, player, record, latestSnapshot);
             LogUtil.info("Spawned ghost house " + attemptId + " for " + player.getName().getString());
             return;
         }

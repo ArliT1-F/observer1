@@ -1,5 +1,6 @@
 package com.icy404.observer;
 
+import com.icy404.observer.archive.ArchiveManager;
 import com.icy404.observer.ghost.GhostHouseManager;
 import com.icy404.observer.profile.HomeProfiler;
 import com.icy404.observer.snapshot.Snapshotter;
@@ -23,6 +24,7 @@ public final class ObserverMod implements ModInitializer {
 
         ServerTickEvents.END_SERVER_TICK.register(TickManager::tick);
         ServerTickEvents.END_SERVER_TICK.register(GhostHouseManager::onServerTick);
+        ServerTickEvents.END_SERVER_TICK.register(ArchiveManager::onServerTick);
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> TickManager.reset());
         Snapshotter.init();
         HomeProfiler.init();
@@ -49,4 +51,3 @@ public final class ObserverMod implements ModInitializer {
     private void ensurePersistentState(ServerWorld world) {
         ObserverState.get(world);
     }
-}

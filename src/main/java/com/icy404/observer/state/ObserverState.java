@@ -1,17 +1,23 @@
 package com.icy404.observer.state;
 
-import java.util.HashMap;
 import com.icy404.observer.ghost.GhostHouseManager;
 import com.icy404.observer.profile.HomeProfiler;
 import com.icy404.observer.snapshot.StructureSnapshot;
+import java.util.HashMap;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.NbtElement;
+import net.minecraft.nbt.NbtInt;
 import net.minecraft.nbt.NbtList;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.world.PersistentState;
+import net.minecraft.util.math.BlockPos;
 
 public final class ObserverState extends PersistentState {
     private static final String DATA_KEY = "observer_state";
@@ -22,6 +28,8 @@ public final class ObserverState extends PersistentState {
     private final Map<UUID, Integer> attemptCounts = new HashMap<>();
     private final Map<UUID, List<GhostHouseManager.AttemptRecord>> attemptRecords = new HashMap<>();
     private final Map<UUID, Long> lastGhostHouseDay = new HashMap<>();
+    private final Map<UUID, Long> archiveOrigins = new HashMap<>();
+    private final Map<UUID, Set<Integer>> archivePastedAttempts = new HashMap<>();
 
     public static ObserverState get(ServerWorld world) {
         return world.getPersistentStateManager().getOrCreate(
@@ -97,6 +105,29 @@ public final class ObserverState extends PersistentState {
                 // Skip malformed UUIDs.
             }
         }
+        NbtCompound archiveOrigins = nbt.getCompound("archiveOrigins");
+        for (String key : archiveOrigins.getKeys()) {
+            try {
+                UUID playerId = UUID.fromString(key);
+                state.archiveOrigins.put(playerId, archiveOrigins.getLong(key));
+            } catch (IllegalArgumentException ignored) {
+                // Skip malformed UUIDs.
+            }
+        }
+        NbtCompound archivePasted = nbt.getCompound("archivePastedAttempts");
+        for (String key : archivePasted.getKeys()) {
+            try {
+                UUID playerId = UUID.fromString(key);
+                NbtList list = archivePasted.getList(key, NbtElement.INT_TYPE);
+                Set<Integer> attempts = new HashSet<>();
+                for (int i = 0; i < list.size(); i++) {
+                    attempts.add(list.getInt(i));
+                }
+                state.archivePastedAttempts.put(playerId, attempts);
+            } catch (IllegalArgumentException ignored) {
+                // Skip malformed UUIDs.
+            }
+        }
         return state;
     }
 
@@ -124,6 +155,31 @@ public final class ObserverState extends PersistentState {
     public void addAttemptRecord(UUID playerId, GhostHouseManager.AttemptRecord record) {
         List<GhostHouseManager.AttemptRecord> records = attemptRecords.computeIfAbsent(playerId, id -> new ArrayList<>());
         records.add(record);
+        markDirty();
+    }
+
+    public List<GhostHouseManager.AttemptRecord> getAttemptRecords(UUID playerId) {
+        List<GhostHouseManager.AttemptRecord> records = attemptRecords.get(playerId);
+        return records == null ? List.of() : List.copyOf(records);
+    }
+
+    public Optional<BlockPos> getArchiveOrigin(UUID playerId) {
+        Long origin = archiveOrigins.get(playerId);
+        return origin == null ? Optional.empty() : Optional.of(BlockPos.fromLong(origin));
+    }
+
+    public void setArchiveOrigin(UUID playerId, BlockPos origin) {
+        archiveOrigins.put(playerId, origin.asLong());
+        markDirty();
+    }
+
+    public boolean isArchiveAttemptPasted(UUID playerId, int attemptId) {
+        Set<Integer> attempts = archivePastedAttempts.get(playerId);
+        return attempts != null && attempts.contains(attemptId);
+    }
+
+    public void markArchiveAttemptPasted(UUID playerId, int attemptId) {
+        archivePastedAttempts.computeIfAbsent(playerId, id -> new HashSet<>()).add(attemptId);
         markDirty();
     }
 
@@ -190,6 +246,19 @@ public final class ObserverState extends PersistentState {
             days.putLong(entry.getKey().toString(), entry.getValue());
         }
         nbt.put("ghostAttemptDays", days);
+        NbtCompound originNbt = new NbtCompound();
+        for (Map.Entry<UUID, Long> entry : archiveOrigins.entrySet()) {
+            originNbt.putLong(entry.getKey().toString(), entry.getValue());
+        }
+        nbt.put("archiveOrigins", originNbt);
+        NbtCompound pastedNbt = new NbtCompound();
+        for (Map.Entry<UUID, Set<Integer>> entry : archivePastedAttempts.entrySet()) {
+            NbtList list = new NbtList();
+            for (Integer attemptId : entry.getValue()) {
+                list.add(NbtInt.of(attemptId));
+            }
+            pastedNbt.put(entry.getKey().toString(), list);
+        }
+        nbt.put("archivePastedAttempts", pastedNbt);
         return nbt;
     }
-}
