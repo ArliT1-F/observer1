@@ -88,10 +88,19 @@ public final class GhostHouseManager {
                 attemptId,
                 fidelity
             );
+            HelperInterference.applyGhostHouseInterference(
+                world,
+                world.getRegistryManager().getWrapperOrThrow(RegistryKeys.BLOCK),
+                latestSnapshot,
+                anchor,
+                placements,
+                attemptId,
+                day
+            );
             for (GhostHousePlanner.Placement placement : placements) {
                 world.setBlockState(placement.pos(), placement.state(), 3);
             }
-            placeMarker(world, placements, fidelity, attemptId);
+            placeMarker(world, placements, fidelity, attemptId, day);
             state.incrementAttemptCount(player.getUuid());
             AttemptRecord record = new AttemptRecord(attemptId, anchor, fidelity, snapshots.size() - 1, day);
             state.addAttemptRecord(player.getUuid(), record);
@@ -129,7 +138,7 @@ public final class GhostHouseManager {
         return true;
     }
 
-    private static void placeMarker(ServerWorld world, List<GhostHousePlanner.Placement> placements, double fidelity, int attemptId) {
+    private static void placeMarker(ServerWorld world, List<GhostHousePlanner.Placement> placements, double fidelity, int attemptId, long day) {
         if (placements.isEmpty()) {
             return;
         }
@@ -143,6 +152,7 @@ public final class GhostHouseManager {
             pages.add(NbtString.of(Text.Serializer.toJson(Text.literal("ITERATION " + String.format("%02d", attemptId)))));
             pages.add(NbtString.of(Text.Serializer.toJson(Text.literal(String.format("FIT: %.2f", fidelity)))));
             pages.add(NbtString.of(Text.Serializer.toJson(Text.literal(String.format("LOSS: %.2f", 1.0 - fidelity)))));
+            HelperInterference.maybeAlterBook(pages, attemptId, day);
             tag.put("pages", pages);
             ItemStack book = new ItemStack(Items.WRITTEN_BOOK);
             book.setNbt(tag);

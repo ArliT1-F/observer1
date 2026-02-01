@@ -3,6 +3,7 @@ package com.icy404.observer.archive;
 import com.icy404.observer.TickManager;
 import com.icy404.observer.ghost.GhostHouseManager;
 import com.icy404.observer.ghost.GhostHousePlanner;
+import com.icy404.observer.narrative.HelperInterference;
 import com.icy404.observer.profile.HomeProfiler;
 import com.icy404.observer.snapshot.StructureSnapshot;
 import com.icy404.observer.state.ObserverState;
@@ -82,7 +83,7 @@ public final class ArchiveManager {
                 ? snapshots.get(record.snapshotIndex())
                 : latestSnapshot;
             if (placeAttemptInArchive(world, player, snapshot, record, archiveOrigin.get())) {
-            state.markArchiveAttemptPasted(player.getUuid(), record.id());
+                state.markArchiveAttemptPasted(player.getUuid(), record.id());
             }
         }
     }
@@ -159,12 +160,12 @@ public final class ArchiveManager {
             queue.enqueue(placement.pos(), placement.state(), 3);
         }
 
+        HelperInterference.maybePlaceArchiveMarker(world, archiveOrigin, cellMin, cellMax, PADDING, record.id(), record.day());
         LogUtil.info("Archived ghost house " + record.id() + " for " + player.getName().getString());
         return true;
     }
 
     private static Box archiveBounds(StructureSnapshot snapshot, BlockPos origin) {
-        private static Box archiveBounds(StructureSnapshot snapshot, BlockPos origin) {
         int width = snapshot.max().getX() - snapshot.min().getX() + 1;
         int height = snapshot.max().getY() - snapshot.min().getY() + 1;
         int depth = snapshot.max().getZ() - snapshot.min().getZ() + 1;
