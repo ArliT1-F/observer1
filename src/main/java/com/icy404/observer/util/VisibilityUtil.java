@@ -76,14 +76,14 @@ public final class VisibilityUtil {
     private static boolean hasLineOfSight(ServerWorld world, ServerPlayerEntity player, Box target) {
         Vec3d eye = player.getEyePos();
         for (Vec3d sample : samplePoints(target)) {
-            if (isLineClear(world, player, eye, sample)) {
+            if (isLineClear(world, player, eye, sample, target)) {
                 return true;
             }
         }
         return false;
     }
 
-    private static boolean isLineClear(ServerWorld world, ServerPlayerEntity player, Vec3d start, Vec3d end) {
+    private static boolean isLineClear(ServerWorld world, ServerPlayerEntity player, Vec3d start, Vec3d end, Box target) {
         HitResult hit = world.raycast(new RaycastContext(
             start,
             end,
@@ -92,6 +92,9 @@ public final class VisibilityUtil {
             player
         ));
         if (hit.getType() == HitResult.Type.MISS) {
+            return true;
+        }
+        if (target.contains(hit.getPos())) {
             return true;
         }
         double hitDistance = hit.getPos().squaredDistanceTo(start);
