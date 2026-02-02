@@ -1,6 +1,7 @@
 package com.icy404.observer.snapshot;
 
 import com.icy404.observer.TickManager;
+import com.icy404.observer.observer.ObserverLifecycle;
 import com.icy404.observer.profile.HomeProfiler;
 import com.icy404.observer.state.ObserverState;
 import com.icy404.observer.util.LogUtil;
@@ -38,6 +39,9 @@ public final class Snapshotter {
         }
 
         ServerWorld world = player.getServerWorld();
+        if (ObserverLifecycle.isObserverDisabled(world)) {
+            return;
+        }
         BlockPos homeAnchor = HomeProfiler.getHomeAnchor(player).orElse(null);
         if (homeAnchor == null) {
             return;

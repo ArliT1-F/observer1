@@ -31,7 +31,9 @@ public final class BuildQueue {
     public int getQueueSize() {
         return placements.size();
     }
-
+    public void clear() {
+        placements.clear();
+    }
     public void tick(ServerWorld world) {
         int remaining = maxPerTick;
         while (remaining > 0 && !placements.isEmpty()) {

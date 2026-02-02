@@ -1,11 +1,15 @@
 package com.icy404.observer.ghost;
 
 import com.icy404.observer.archive.ArchiveManager;
+import com.icy404.observer.convergence.ConvergenceManager;
+import com.icy404.observer.observer.ObserverLifecycle;
+import com.icy404.observer.revelation.RevelationBookGenerator;
 import com.icy404.observer.profile.HomeProfiler;
 import com.icy404.observer.snapshot.StructureSnapshot;
 import com.icy404.observer.state.ObserverState;
 import com.icy404.observer.util.LogUtil;
 import com.icy404.observer.util.VisibilityUtil;
+import com.icy404.observer.narrative.HelperInterference;
 import java.util.List;
 import java.util.Optional;
 import java.util.Random;
@@ -46,9 +50,13 @@ public final class GhostHouseManager {
             return;
         }
         ServerWorld world = player.getServerWorld();
+        if (ObserverLifecycle.isObserverDisabled(world)) {
+            return;
+        }
         long day = world.getTimeOfDay() / 24000L;
         ObserverState state = ObserverState.get(world);
-        if (!state.shouldAttemptGhostHouse(player.getUuid(), day)) {
+        boolean convergenceActive = ConvergenceManager.isConvergenceActive(world);
+        if (!state.shouldAttemptGhostHouse(player.getUuid(), day, world.getTime(), convergenceActive)) {
             return;
         }
 
@@ -64,7 +72,9 @@ public final class GhostHouseManager {
         StructureSnapshot latestSnapshot = snapshots.get(snapshots.size() - 1);
         int attemptId = state.getAttemptCount(player.getUuid()) + 1;
         double fidelity = Math.min(0.99, 0.30 + (attemptId - 1) * 0.05);
-
+        if (convergenceActive) {
+            fidelity = Math.max(0.25, fidelity - 0.04);
+        }
         Random random = new Random(seed(player.getUuid(), day, attemptId));
         for (int i = 0; i < MAX_ATTEMPTS; i++) {
             double angle = random.nextDouble() * Math.PI * 2.0;
@@ -100,11 +110,13 @@ public final class GhostHouseManager {
             for (GhostHousePlanner.Placement placement : placements) {
                 world.setBlockState(placement.pos(), placement.state(), 3);
             }
-            placeMarker(world, placements, fidelity, attemptId, day);
+            boolean newPerfect = state.updateMostPerfectAttempt(player.getUuid(), attemptId, fidelity);
+            placeMarker(world, player, state, placements, fidelity, attemptId, day, newPerfect);
             state.incrementAttemptCount(player.getUuid());
             AttemptRecord record = new AttemptRecord(attemptId, anchor, fidelity, snapshots.size() - 1, day);
             state.addAttemptRecord(player.getUuid(), record);
-            state.markAttemptedToday(player.getUuid(), day);
+            state.markAttempted(player.getUuid(), day, world.getTime());
+            ConvergenceManager.onGhostHouseSpawned(world, player, record);
             ArchiveManager.onGhostHouseSpawned(world, player, record, latestSnapshot);
             LogUtil.info("Spawned ghost house " + attemptId + " for " + player.getName().getString());
             return;
@@ -138,12 +150,12 @@ public final class GhostHouseManager {
         return true;
     }
 
-    private static void placeMarker(ServerWorld world, List<GhostHousePlanner.Placement> placements, double fidelity, int attemptId, long day) {
+    private static void placeMarker(ServerWorld world, ServerPlayerEntity player, ObserverState state, List<GhstHousePlanner.Placement>placements, double fidelity, int attemptId, long day, boolean newPerfect) {
         if (placements.isEmpty()) {
             return;
         }
         BlockPos entrance = placements.get(0).pos();
-        world.setBlockState(entrance, Blocks.LECTERN.getDefaultState().with(net.minecraft.block.LecternBlock.FACING, Direction.NORTH));
+        world.setBlockState(entrance, Blocks.LECTERN.getDefaultState().with(net.minecraft.block.LecternBlock.FACING, Deirection.NORTH));
         if (world.getBlockEntity(entrance) instanceof net.minecraft.block.entity.LecternBlockEntity lectern) {
             NbtCompound tag = new NbtCompound();
             tag.putString("title", "ITERATION " + String.format("%02d", attemptId));
@@ -152,15 +164,27 @@ public final class GhostHouseManager {
             pages.add(NbtString.of(Text.Serializer.toJson(Text.literal("ITERATION " + String.format("%02d", attemptId)))));
             pages.add(NbtString.of(Text.Serializer.toJson(Text.literal(String.format("FIT: %.2f", fidelity)))));
             pages.add(NbtString.of(Text.Serializer.toJson(Text.literal(String.format("LOSS: %.2f", 1.0 - fidelity)))));
-            HelperInterference.maybeAlterBook(pages, attemptId, day);
+            HelperInterference.maybeAlterBook(world, pages, attemptId, day);
             tag.put("pages", pages);
-            ItemStack book = new ItemStack(Items.WRITTEN_BOOK);
-            book.setNbt(tag);
+            ItemStack book;
+            boolean shouldReveal = newPerfect && (ConvergenceManager.isConvergenceActive(world) || fidelity >= 0.98);
+            if (shouldReveal) {
+                book = RevelationBookGenerator.createFinalBook(world, player, fidelity);
+            } else {
+                book = new ItemStack(Items.WRITTEN_BOOK);
+                book.setNbt(tag);
+            }
             lectern.setBook(book);
+            if (newPerfect) {
+                state.setMostPerfectLectern(player.getUuid(), entrance);
+                if (shouldReveal) {
+                    state.markMostPerfectRevelationPlaced(player.getUuid());
+                }
+            }
         }
     }
 
-    private static long seed(UUID playerId, long day, int attemptId) {
+        private static long seed(UUID playerId, long day, int attemptId) {
         long seed = playerId.getMostSignificantBits() ^ playerId.getLeastSignificantBits();
         seed ^= day * 0x9E3779B97F4A7C15L;
         seed ^= (long) attemptId * 0xBF58476D1CE4E5B9L;

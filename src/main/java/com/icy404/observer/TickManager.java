@@ -1,6 +1,7 @@
 package com.icy404.observer;
 
 import com.icy404.observer.world.BuildQueue;
+import com.icy404.observer.observer.ObserverLifecycle;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -26,7 +27,13 @@ public final class TickManager {
         Identifier worldId = world.getRegistryKey().getValue();
         return WORLD_QUEUES.computeIfAbsent(worldId, id -> new BuildQueue());
     }
-
+    public static void clearWorldQueue(ServerWorld world) {
+        Identifier worldId = world.getRegistryKey().getValue();
+        BuildQueue queue = WORLD_QUEUES.get(worldId);
+        if (queue != null) {
+            queue.clear();
+        }
+    }
     public static void tick(MinecraftServer server) {
         for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
             for (Consumer<ServerPlayerEntity> handler : PLAYER_TICK_HANDLERS) {
@@ -35,7 +42,10 @@ public final class TickManager {
         }
 
         for (ServerWorld world : server.getWorlds()) {
-            getQueue(world).tick(world);
+            if (ObserverLifecycle.shouldRun(world)) {
+                getQueue(world).tick(world);
+            }
+
         }
     }
 

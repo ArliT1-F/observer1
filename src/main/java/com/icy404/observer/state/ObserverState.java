@@ -28,8 +28,19 @@ public final class ObserverState extends PersistentState {
     private final Map<UUID, Integer> attemptCounts = new HashMap<>();
     private final Map<UUID, List<GhostHouseManager.AttemptRecord>> attemptRecords = new HashMap<>();
     private final Map<UUID, Long> lastGhostHouseDay = new HashMap<>();
+    private final Map<UUID, Long> lastGhostHouseTick = new HashMap<>();
     private final Map<UUID, Long> archiveOrigins = new HashMap<>();
     private final Map<UUID, Set<Integer>> archivePastedAttempts = new HashMap<>();
+    private final Map<UUID, Integer> mostPerfectAttempt = new HashMap<>();
+    private final Map<UUID, Double> mostPerfectFidelity = new HashMap<>();
+    private final Map<UUID, Long> mostPerfectLectern = new HashMap<>();
+    private final Map<UUID, Boolean> mostPerfectRevelationPlaced = new HashMap<>();
+    private final Map<UUID, Long> finalArchiveLectern = new HashMap<>();
+    private final Map<UUID, Boolean> revelationDecoded = new HashMap<>();
+    private final Map<UUID, String> endingState = new HashMap<>();
+    private boolean observerConvergence;
+    private long convergenceTick = Long.MIN_VALUE;
+    private boolean observerDisabled;
 
     public static ObserverState get(ServerWorld world) {
         return world.getPersistentStateManager().getOrCreate(
@@ -105,6 +116,15 @@ public final class ObserverState extends PersistentState {
                 // Skip malformed UUIDs.
             }
         }
+        NbtCompound lastTicks = nbt.getCompound("ghostAttemptTicks");
+        for (String key : lastTicks.getKeys()) {
+            try {
+                UUID playerId = UUID.fromString(key);
+                state.lastGhostHouseTick.put(playerId, lastTicks.getLong(key));
+            } catch (IllegalArgumentException ignored) {
+                // Skip malformed UUIDs.
+            }
+        }
         NbtCompound archiveOrigins = nbt.getCompound("archiveOrigins");
         for (String key : archiveOrigins.getKeys()) {
             try {
@@ -119,15 +139,128 @@ public final class ObserverState extends PersistentState {
             try {
                 UUID playerId = UUID.fromString(key);
                 NbtList list = archivePasted.getList(key, NbtElement.INT_TYPE);
-                Set<Integer> attempts = new HashSet<>();
+                Set<Integer> attemptSet = new HashSet<>();
                 for (int i = 0; i < list.size(); i++) {
-                    attempts.add(list.getInt(i));
+                    attemptSet.add(list.getInt(i));
                 }
-                state.archivePastedAttempts.put(playerId, attempts);
+                state.archivePastedAttempts.put(playerId, attemptSet);
             } catch (IllegalArgumentException ignored) {
                 // Skip malformed UUIDs.
             }
         }
+        NbtCompound perfectAttempts = nbt.getCompound("mostPerfectAttempt");
+        for (String key : perfectAttempts.getKeys()) {
+            try {
+                UUID playerId = UUID.fromString(key);
+                state.mostPerfectAttempt.put(playerId, perfectAttempts.getInt(key));
+            } catch (IllegalArgumentException ignored) {
+                // Skip malformed UUIDs.
+            }
+        }
+        NbtCompound perfectFidelity = nbt.getCompound("mostPerfectFidelity");
+        for (String key : perfectFidelity.getKeys()) {
+            try {
+                UUID playerId = UUID.fromString(key);
+                state.mostPerfectFidelity.put(playerId, perfectFidelity.getDouble(key));
+            } catch (IllegalArgumentException ignored) {
+                // Skip malformed UUIDs.
+            }
+        }
+        NbtCompound perfectLecterns = nbt.getCompound("mostPerfectLectern");
+        for (String key : perfectLecterns.getKeys()) {
+            try {
+                UUID playerId = UUID.fromString(key);
+                state.mostPerfectLectern.put(playerId, perfectLecterns.getLong(key));
+            } catch (IllegalArgumentException ignored) {
+                // Skip malformed UUIDs.
+            }
+        }
+        NbtCompound perfectRevelations = nbt.getCompound("mostPerfectRevelationPlaced");
+        for (String key : perfectRevelations.getKeys()) {
+            try {
+                UUID playerId = UUID.fromString(key);
+                state.mostPerfectRevelationPlaced.put(playerId, perfectRevelations.getBoolean(key));
+            } catch (IllegalArgumentException ignored) {
+                // Skip malformed UUIDs.
+            }
+        }
+        NbtCompound archiveLecterns = nbt.getCompound("finalArchiveLectern");
+        for (String key : archiveLecterns.getKeys()) {
+            try {
+                UUID playerId = UUID.fromString(key);
+                state.finalArchiveLectern.put(playerId, archiveLecterns.getLong(key));
+            } catch (IllegalArgumentException ignored) {
+                // Skip malformed UUIDs.
+            }
+        }
+        NbtCompound revelations = nbt.getCompound("revelationDecoded");
+        for (String key : revelations.getKeys()) {
+            try {
+                UUID playerId = UUID.fromString(key);
+                state.revelationDecoded.put(playerId, revelations.getBoolean(key));
+            } catch (IllegalArgumentException ignored) {
+                // Skip malformed UUIDs.
+            }
+        }
+        NbtCompound endings = nbt.getCompound("endingState");
+        for (String key : endings.getKeys()) {
+            try {
+                UUID playerId = UUID.fromString(key);
+                state.endingState.put(playerId, endings.getString(key));
+            } catch (IllegalArgumentException ignored) {
+                // Skip malformed UUIDs.
+            }
+        }
+        state.observerConvergence = nbt.getBoolean("observerConvergence");
+        state.convergenceTick = nbt.getLong("convergenceTick");
+        state.observerDisabled = nbt.getBoolean("observerDisabled");
+
+            } catch (IllegalArgumentException ignored) {
+                // Skip malformed UUIDs.
+            }
+        }
+        NbtCompound perfectRevelations = nbt.getCompound("mostPerfectRevelationPlaced");for(
+        String key:perfectRevelations.getKeys())
+        {
+            try {
+                UUID playerId = UUID.fromString(key);
+                state.mostPerfectRevelationPlaced.put(playerId, perfectRevelations.getBoolean(key));
+            } catch (IllegalArgumentException ignored) {
+                // Skip malformed UUIDs.
+            }
+        }
+        NbtCompound archiveLecterns = nbt.getCompound("finalArchiveLectern");for(
+        String key:archiveLecterns.getKeys())
+        {
+            try {
+                UUID playerId = UUID.fromString(key);
+                state.finalArchiveLectern.put(playerId, archiveLecterns.getLong(key));
+            } catch (IllegalArgumentException ignored) {
+                // Skip malformed UUIDs.
+            }
+        }
+        NbtCompound revelations = nbt.getCompound("revelationDecoded");for(
+        String key:revelations.getKeys())
+        {
+            try {
+                UUID playerId = UUID.fromString(key);
+                state.revelationDecoded.put(playerId, revelations.getBoolean(key));
+            } catch (IllegalArgumentException ignored) {
+                // Skip malformed UUIDs.
+            }
+        }
+        NbtCompound endings = nbt.getCompound("endingState");for(
+        String key:endings.getKeys())
+        {
+            try {
+                UUID playerId = UUID.fromString(key);
+                state.endingState.put(playerId, endings.getString(key));
+            } catch (IllegalArgumentException ignored) {
+                // Skip malformed UUIDs.
+            }
+        }
+        state.observerConvergence=nbt.getBoolean("observerConvergence");
+        state.convergenceTick=nbt.getLong("convergenceTick");state.observerDisabled=nbt.getBoolean("observerDisabled");
         return state;
     }
 
@@ -147,6 +280,7 @@ public final class ObserverState extends PersistentState {
 
     public int getAttemptCount(UUID playerId) {
         int next = attemptCounts.getOrDefault(playerId, 0);
+        return next;
     }
     
     public int incrementAttemptCount(UUID playerId) {
@@ -190,10 +324,118 @@ public final class ObserverState extends PersistentState {
     public boolean shouldAttemptGhostHouse(UUID playerId, long day) {
         return lastGhostHouseDay.getOrDefault(playerId, -1L) < day;
     }
+    public boolean shouldAttemptGhostHouse(UUID playerId, long day, long worldTime, boolean convergence) {
+        if (!convergence) {
+            return shouldAttemptGhostHouse(playerId, day);
+        }
+        long lastTick = lastGhostHouseTick.getOrDefault(playerId, Long.MIN_VALUE);
+        return worldTime - lastTick >= 6000L;
+    }
 
     public void markAttemptedToday(UUID playerId, long day) {
         lastGhostHouseDay.put(playerId, day);
         markDirty();
+    }
+
+    public void markAttempted(UUID playerId, long day, long worldTime) {
+        lastGhostHouseDay.put(playerId, day);
+        lastGhostHouseTick.put(playerId, worldTime);
+        markDirty();
+    }
+
+        public boolean updateMostPerfectAttempt(UUID playerId, int attemptId, double fidelity) {
+        double current = mostPerfectFidelity.getOrDefault(playerId, -1.0);
+        if (fidelity <= current) {
+            return false;
+        }
+        mostPerfectAttempt.put(playerId, attemptId);
+        mostPerfectFidelity.put(playerId, fidelity);
+        markDirty();
+        return true;
+    }
+
+        public Optional<Integer> getMostPerfectAttempt(UUID playerId) {
+        Integer value = mostPerfectAttempt.get(playerId);
+        return value == null ? Optional.empty() : Optional.of(value);
+    }
+
+        public double getMostPerfectFidelity(UUID playerId) {
+        return mostPerfectFidelity.getOrDefault(playerId, 0.0);
+    }
+
+        public Optional<BlockPos> getMostPerfectLectern(UUID playerId) {
+        Long pos = mostPerfectLectern.get(playerId);
+        return pos == null ? Optional.empty() : Optional.of(BlockPos.fromLong(pos));
+    }
+
+        public void setMostPerfectLectern(UUID playerId, BlockPos pos) {
+        mostPerfectLectern.put(playerId, pos.asLong());
+        markDirty();
+    }
+
+        public boolean isMostPerfectRevelationPlaced(UUID playerId) {
+        return mostPerfectRevelationPlaced.getOrDefault(playerId, false);
+    }
+
+        public void markMostPerfectRevelationPlaced(UUID playerId) {
+        mostPerfectRevelationPlaced.put(playerId, true);
+        markDirty();
+    }
+
+        public Optional<BlockPos> getFinalArchiveLectern(UUID playerId) {
+        Long pos = finalArchiveLectern.get(playerId);
+        return pos == null ? Optional.empty() : Optional.of(BlockPos.fromLong(pos));
+    }
+
+        public void setFinalArchiveLectern(UUID playerId, BlockPos pos) {
+        finalArchiveLectern.put(playerId, pos.asLong());
+        markDirty();
+    }
+
+        public boolean isRevelationDecoded(UUID playerId) {
+        return revelationDecoded.getOrDefault(playerId, false);
+    }
+
+        public void markRevelationDecoded(UUID playerId) {
+        revelationDecoded.put(playerId, true);
+        markDirty();
+    }
+
+        public Optional<String> getEndingState(UUID playerId) {
+        String state = endingState.get(playerId);
+        return state == null || state.isBlank() ? Optional.empty() : Optional.of(state);
+    }
+
+        public void setEndingState(UUID playerId, String ending) {
+        endingState.put(playerId, ending);
+        markDirty();
+    }
+
+        public boolean isObserverConvergence() {
+        return observerConvergence;
+    }
+
+        public void markObserverConvergence(long tick) {
+        if (!observerConvergence) {
+            observerConvergence = true;
+            convergenceTick = tick;
+            markDirty();
+        }
+    }
+
+        public long getConvergenceTick() {
+        return convergenceTick;
+    }
+
+        public boolean isObserverDisabled() {
+        return observerDisabled;
+    }
+
+        public void setObserverDisabled(boolean observerDisabled) {
+        if (this.observerDisabled != observerDisabled) {
+            this.observerDisabled = observerDisabled;
+            markDirty();
+        }
     }
 
     public List<StructureSnapshot> getSnapshots(UUID playerId) {
@@ -250,6 +492,11 @@ public final class ObserverState extends PersistentState {
             days.putLong(entry.getKey().toString(), entry.getValue());
         }
         nbt.put("ghostAttemptDays", days);
+        NbtCompound ticks = new NbtCompound();
+        for (Map.Entry<UUID, Long> entry : lastGhostHouseTick.entrySet()) {
+            ticks.putLong(entry.getKey().toString(), entry.getValue());
+        }
+        nbt.put("ghostAttemptTicks", ticks);
         NbtCompound originNbt = new NbtCompound();
         for (Map.Entry<UUID, Long> entry : archiveOrigins.entrySet()) {
             originNbt.putLong(entry.getKey().toString(), entry.getValue());
@@ -264,5 +511,44 @@ public final class ObserverState extends PersistentState {
             pastedNbt.put(entry.getKey().toString(), list);
         }
         nbt.put("archivePastedAttempts", pastedNbt);
+        NbtCompound perfectAttempts = new NbtCompound();
+        for (Map.Entry<UUID, Integer> entry : mostPerfectAttempt.entrySet()) {
+            perfectAttempts.putInt(entry.getKey().toString(), entry.getValue());
+        }
+        nbt.put("mostPerfectAttempt", perfectAttempts);
+        NbtCompound perfectFidelity = new NbtCompound();
+        for (Map.Entry<UUID, Double> entry : mostPerfectFidelity.entrySet()) {
+            perfectFidelity.putDouble(entry.getKey().toString(), entry.getValue());
+        }
+        nbt.put("mostPerfectFidelity", perfectFidelity);
+        NbtCompound perfectLecterns = new NbtCompound();
+        for (Map.Entry<UUID, Long> entry : mostPerfectLectern.entrySet()) {
+            perfectLecterns.putLong(entry.getKey().toString(), entry.getValue());
+        }
+        nbt.put("mostPerfectLectern", perfectLecterns);
+        NbtCompound perfectRevelations = new NbtCompound();
+        for (Map.Entry<UUID, Boolean> entry : mostPerfectRevelationPlaced.entrySet()) {
+            perfectRevelations.putBoolean(entry.getKey().toString(), entry.getValue());
+        }
+        nbt.put("mostPerfectRevelationPlaced", perfectRevelations);
+        NbtCompound archiveLecterns = new NbtCompound();
+        for (Map.Entry<UUID, Long> entry : finalArchiveLectern.entrySet()) {
+            archiveLecterns.putLong(entry.getKey().toString(), entry.getValue());
+        }
+        nbt.put("finalArchiveLectern", archiveLecterns);
+        NbtCompound revelations = new NbtCompound();
+        for (Map.Entry<UUID, Boolean> entry : revelationDecoded.entrySet()) {
+            revelations.putBoolean(entry.getKey().toString(), entry.getValue());
+        }
+        nbt.put("revelationDecoded", revelations);
+        NbtCompound endings = new NbtCompound();
+        for (Map.Entry<UUID, String> entry : endingState.entrySet()) {
+            endings.putString(entry.getKey().toString(), entry.getValue());
+        }
+        nbt.put("endingState", endings);
+        nbt.putBoolean("observerConvergence", observerConvergence);
+        nbt.putLong("convergenceTick", convergenceTick);
+        nbt.putBoolean("observerDisabled", observerDisabled);
         return nbt;
     }
+}

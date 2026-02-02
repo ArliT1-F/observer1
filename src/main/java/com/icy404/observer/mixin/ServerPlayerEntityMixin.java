@@ -1,5 +1,6 @@
 package com.icy404.observer.mixin;
 
+import com.icy404.observer.ending.EndingManager;
 import com.icy404.observer.profile.HomeProfiler;
 import com.mojang.datafixers.util.Either;
 import net.minecraft.entity.player.PlayerEntity;
@@ -17,6 +18,7 @@ public final class ServerPlayerEntityMixin {
     private void observer$onTrySleep(BlockPos pos, CallbackInfoReturnable<Either<PlayerEntity.SleepFailureReason, Unit>> cir) {
         if (cir.getReturnValue().right().isPresent()) {
             HomeProfiler.recordSleep((ServerPlayerEntity) (Object) this, pos);
+            EndingManager.onSleep((ServerPlayerEntity) (Object) this, pos);
         }
     }
 }

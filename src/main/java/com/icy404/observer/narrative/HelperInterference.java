@@ -1,6 +1,8 @@
 package com.icy404.observer.narrative;
 
+import com.icy404.observer.convergence.ConvergenceManager;
 import com.icy404.observer.ghost.GhostHousePlanner;
+import com.icy404.observer.observer.ObserverLifecycle;
 import com.icy404.observer.snapshot.StructureSnapshot;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -26,6 +28,11 @@ public final class HelperInterference {
         Text.literal("pencil: safer light near the edge."),
         Text.literal("scribble: follow the colder stones.")
     );
+    private static final List<Text> CONVERGENCE_HINTS = List.of(
+        Text.literal("this is as far as it went"),
+        Text.literal("it does not stop"),
+        Text.literal("it learned you well enough")
+    );
 
     private HelperInterference() {
     }
@@ -33,6 +40,9 @@ public final class HelperInterference {
     public static void applyGhostHouseInterference(ServerWorld world, RegistryEntryLookup<Block> blockLookup,
             StructureSnapshot snapshot, BlockPos anchor, List<GhostHousePlanner.Placement> placements, int attemptId,
             long day) {
+        if (ObserverLifecycle.isObserverDisabled(world) || ConvergenceManager.isConvergenceActive(world)) {
+            return;
+        }
         if (attemptId < 2 || placements.isEmpty()) {
             return;
         }
@@ -88,7 +98,10 @@ public final class HelperInterference {
         }
     }
 
-    public static void maybeAlterBook(NbtList pages, int attemptId, long day) {
+    public static void maybeAlterBook(ServerWorld world, NbtList pages, int attemptId, long day) {
+        if (ObserverLifecycle.isObserverDisabled(world)) {
+            return;
+        }
         if (attemptId < 3 || pages.isEmpty()) {
             return;
         }
@@ -97,7 +110,8 @@ public final class HelperInterference {
         if (random.nextDouble() > chance) {
             return;
         }
-        Text hint = BOOK_HINTS.get(random.nextInt(BOOK_HINTS.size()));
+        List<Text> hints = ConvergenceManager.isConvergenceActive(world) ? CONVERGENCE_HINTS : BOOK_HINTS;
+        Text hint = hints.get(random.nextInt(hints.size()));
         int targetPage = Math.min(pages.size() - 1, 2);
         String existing = pages.getString(targetPage);
         Text base = Text.Serializer.fromJson(existing);
@@ -108,6 +122,9 @@ public final class HelperInterference {
 
     public static void maybePlaceArchiveMarker(ServerWorld world, BlockPos archiveOrigin,
             BlockPos cellMin, BlockPos cellMax, int padding, int attemptId, long day) {
+        if (ObserverLifecycle.isObserverDisabled(world) || ConvergenceManager.isConvergenceActive(world)) {
+            return;
+        }
         if (attemptId < 2) {
             return;
         }
@@ -119,7 +136,7 @@ public final class HelperInterference {
 
         int padHalf = padding / 2;
         BlockPos structureMin = cellMin.add(padHalf, padHalf, padHalf);
-        BlockPos structureMax = cellMax.subtract(padHalf, padHalf, padHalf);
+        BlockPos structureMax = cellMax.add(-padHalf, -padHalf, -padHalf);
 
         boolean towardWest = archiveOrigin.getX() < cellMin.getX();
         boolean towardNorth = archiveOrigin.getZ() < cellMin.getZ();

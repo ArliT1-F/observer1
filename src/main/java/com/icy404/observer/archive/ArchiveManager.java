@@ -1,6 +1,12 @@
 package com.icy404.observer.archive;
 
+import java.util.List;
+import java.util.Optional;
+
 import com.icy404.observer.TickManager;
+import com.icy404.observer.convergence.ConvergenceManager;
+import com.icy404.observer.observer.ObserverLifecycle;
+import com.icy404.observer.revelation.RevelationBookGenerator;
 import com.icy404.observer.ghost.GhostHouseManager;
 import com.icy404.observer.ghost.GhostHousePlanner;
 import com.icy404.observer.narrative.HelperInterference;
@@ -10,8 +16,7 @@ import com.icy404.observer.state.ObserverState;
 import com.icy404.observer.util.LogUtil;
 import com.icy404.observer.util.VisibilityUtil;
 import com.icy404.observer.world.BuildQueue;
-import java.util.List;
-import java.util.Optional;
+
 import net.minecraft.block.Blocks;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.server.MinecraftServer;
@@ -36,6 +41,9 @@ public final class ArchiveManager {
     }
 
     public static void onGhostHouseSpawned(ServerWorld world, ServerPlayerEntity player, GhostHouseManager.AttemptRecord record, StructureSnapshot snapshot) {
+        if (ObserverLifecycle.isObserverDisabled(world)) {
+            return;
+        }
         ObserverState state = ObserverState.get(world);
         Optional<BlockPos> archiveOrigin = state.getArchiveOrigin(player.getUuid());
         if (archiveOrigin.isEmpty()) {
@@ -58,6 +66,9 @@ public final class ArchiveManager {
             return;
         }
         ServerWorld world = player.getServerWorld();
+        if (ObserverLifecycle.isObserverDisabled(world)) {
+            return;
+        }
         ObserverState state = ObserverState.get(world);
         Optional<BlockPos> homeAnchor = HomeProfiler.getHomeAnchor(player);
         if (homeAnchor.isEmpty()) {
@@ -140,9 +151,14 @@ public final class ArchiveManager {
         if (VisibilityUtil.isAreaObserved(world, cellBox) || VisibilityUtil.isAnyPlayerInside(world, archiveBox)) {
             return false;
         }
+        BlockPos revelationLecternPos = null;
+        if (record.id() == MAX_ATTEMPTS) {
+            int padHalf = PADDING / 2;
+            revelationLecternPos = cellMin.add(1, padHalf, 1);
+        }
 
         BuildQueue queue = TickManager.getQueue(world);
-        carveVolume(queue, cellMin, cellMax);
+        carveVolume(queue, cellMin, cellMax, revelationLecternPos);
 
         int padHalf = PADDING / 2;
         BlockPos localMin = snapshot.min().subtract(snapshot.anchor());
@@ -161,6 +177,10 @@ public final class ArchiveManager {
         }
 
         HelperInterference.maybePlaceArchiveMarker(world, archiveOrigin, cellMin, cellMax, PADDING, record.id(), record.day());
+        if (revelationLecternPos != null) {
+            placeRevelationLectern(world, player, revelationLecternPos, record.fidelity());
+            ConvergenceManager.onArchiveFinalSlot(world, player);
+        }
         LogUtil.info("Archived ghost house " + record.id() + " for " + player.getName().getString());
         return true;
     }
@@ -181,13 +201,31 @@ public final class ArchiveManager {
     }
 
     private static void carveVolume(BuildQueue queue, BlockPos min, BlockPos max) {
+        carveVolume(queue, min, max, null);
+    }
+
+    private static void carveVolume(BuildQueue queue, BlockPos min, BlockPos max, BlockPos skipPos) {
+        long skip = skipPos == null ? Long.MIN_VALUE : skipPos.asLong();
+
         for (int x = min.getX(); x <= max.getX(); x++) {
             for (int y = min.getY(); y <= max.getY(); y++) {
                 for (int z = min.getZ(); z <= max.getZ(); z++) {
-                    queue.enqueue(new BlockPos(x, y, z), Blocks.AIR.getDefaultState(), 3);
+                    BlockPos pos = new BlockPos(x, y, z);
+                    if (pos.asLong() == skip) {
+                        continue;
+                    }
+                    queue.enqueue(pos, Blocks.AIR.getDefaultState(), 3);
                 }
             }
         }
+    }
+
+    private static void placeRevelationLectern(ServerWorld world, ServerPlayerEntity player, BlockPos pos, double fidelity) {
+        world.setBlockState(pos, Blocks.LECTERN.getDefaultState(), 3);
+        if (world.getBlockEntity(pos) instanceof net.minecraft.block.entity.LecternBlockEntity lectern) {
+            lectern.setBook(RevelationBookGenerator.createFinalBook(world, player, fidelity));
+        }
+        ObserverState.get(world).setFinalArchiveLectern(player.getUuid(), pos);
     }
 
     private static void enqueueLighting(BuildQueue queue, BlockPos origin, int totalWidth, int totalDepth, int baseY) {
@@ -200,3 +238,4 @@ public final class ArchiveManager {
             queue.enqueue(new BlockPos(origin.getX() + totalWidth - 2, y, z), Blocks.TORCH.getDefaultState(), 3);
         }
     }
+}

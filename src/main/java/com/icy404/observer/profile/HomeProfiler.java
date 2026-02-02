@@ -1,6 +1,7 @@
 package com.icy404.observer.profile;
 
 import com.icy404.observer.TickManager;
+import com.icy404.observer.observer.ObserverLifecycle;
 import com.icy404.observer.state.ObserverState;
 import com.icy404.observer.util.LogUtil;
 import java.util.HashMap;
@@ -67,6 +68,9 @@ public final class HomeProfiler {
         if (!isServerPlayer(player)) {
             return;
         }
+        if (ObserverLifecycle.isObserverDisabled(player.getServerWorld())) {
+            return;
+        }
         HomeProfile profile = getProfile(player);
         addScore(profile, bedPos, WEIGHT_SLEEP);
         profile.lastActionTick = player.getServerWorld().getTime();
@@ -121,6 +125,9 @@ public final class HomeProfiler {
         }
 
         ServerWorld world = player.getServerWorld();
+        if (ObserverLifecycle.isObserverDisabled(world)) {
+            return;
+        }
         long worldTime = world.getTime();
         HomeProfile profile = getProfile(player);
 
@@ -204,6 +211,9 @@ public final class HomeProfiler {
 
     private static void recordAction(PlayerEntity player, int weight) {
         if (!(player instanceof ServerPlayerEntity serverPlayer)) {
+            return;
+        }
+        if (ObserverLifecycle.isObserverDisabled(world)) {
             return;
         }
         HomeProfile profile = getProfile(serverPlayer);
