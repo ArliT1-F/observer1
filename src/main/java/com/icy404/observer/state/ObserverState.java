@@ -214,53 +214,6 @@ public final class ObserverState extends PersistentState {
         state.observerConvergence = nbt.getBoolean("observerConvergence");
         state.convergenceTick = nbt.getLong("convergenceTick");
         state.observerDisabled = nbt.getBoolean("observerDisabled");
-
-            } catch (IllegalArgumentException ignored) {
-                // Skip malformed UUIDs.
-            }
-        }
-        NbtCompound perfectRevelations = nbt.getCompound("mostPerfectRevelationPlaced");for(
-        String key:perfectRevelations.getKeys())
-        {
-            try {
-                UUID playerId = UUID.fromString(key);
-                state.mostPerfectRevelationPlaced.put(playerId, perfectRevelations.getBoolean(key));
-            } catch (IllegalArgumentException ignored) {
-                // Skip malformed UUIDs.
-            }
-        }
-        NbtCompound archiveLecterns = nbt.getCompound("finalArchiveLectern");for(
-        String key:archiveLecterns.getKeys())
-        {
-            try {
-                UUID playerId = UUID.fromString(key);
-                state.finalArchiveLectern.put(playerId, archiveLecterns.getLong(key));
-            } catch (IllegalArgumentException ignored) {
-                // Skip malformed UUIDs.
-            }
-        }
-        NbtCompound revelations = nbt.getCompound("revelationDecoded");for(
-        String key:revelations.getKeys())
-        {
-            try {
-                UUID playerId = UUID.fromString(key);
-                state.revelationDecoded.put(playerId, revelations.getBoolean(key));
-            } catch (IllegalArgumentException ignored) {
-                // Skip malformed UUIDs.
-            }
-        }
-        NbtCompound endings = nbt.getCompound("endingState");for(
-        String key:endings.getKeys())
-        {
-            try {
-                UUID playerId = UUID.fromString(key);
-                state.endingState.put(playerId, endings.getString(key));
-            } catch (IllegalArgumentException ignored) {
-                // Skip malformed UUIDs.
-            }
-        }
-        state.observerConvergence=nbt.getBoolean("observerConvergence");
-        state.convergenceTick=nbt.getLong("convergenceTick");state.observerDisabled=nbt.getBoolean("observerDisabled");
         return state;
     }
 
@@ -324,6 +277,7 @@ public final class ObserverState extends PersistentState {
     public boolean shouldAttemptGhostHouse(UUID playerId, long day) {
         return lastGhostHouseDay.getOrDefault(playerId, -1L) < day;
     }
+
     public boolean shouldAttemptGhostHouse(UUID playerId, long day, long worldTime, boolean convergence) {
         if (!convergence) {
             return shouldAttemptGhostHouse(playerId, day);
@@ -343,7 +297,7 @@ public final class ObserverState extends PersistentState {
         markDirty();
     }
 
-        public boolean updateMostPerfectAttempt(UUID playerId, int attemptId, double fidelity) {
+    public boolean updateMostPerfectAttempt(UUID playerId, int attemptId, double fidelity) {
         double current = mostPerfectFidelity.getOrDefault(playerId, -1.0);
         if (fidelity <= current) {
             return false;
@@ -354,68 +308,68 @@ public final class ObserverState extends PersistentState {
         return true;
     }
 
-        public Optional<Integer> getMostPerfectAttempt(UUID playerId) {
+    public Optional<Integer> getMostPerfectAttempt(UUID playerId) {
         Integer value = mostPerfectAttempt.get(playerId);
         return value == null ? Optional.empty() : Optional.of(value);
     }
 
-        public double getMostPerfectFidelity(UUID playerId) {
+    public double getMostPerfectFidelity(UUID playerId) {
         return mostPerfectFidelity.getOrDefault(playerId, 0.0);
     }
 
-        public Optional<BlockPos> getMostPerfectLectern(UUID playerId) {
+    public Optional<BlockPos> getMostPerfectLectern(UUID playerId) {
         Long pos = mostPerfectLectern.get(playerId);
         return pos == null ? Optional.empty() : Optional.of(BlockPos.fromLong(pos));
     }
 
-        public void setMostPerfectLectern(UUID playerId, BlockPos pos) {
+    public void setMostPerfectLectern(UUID playerId, BlockPos pos) {
         mostPerfectLectern.put(playerId, pos.asLong());
         markDirty();
     }
 
-        public boolean isMostPerfectRevelationPlaced(UUID playerId) {
+    public boolean isMostPerfectRevelationPlaced(UUID playerId) {
         return mostPerfectRevelationPlaced.getOrDefault(playerId, false);
     }
 
-        public void markMostPerfectRevelationPlaced(UUID playerId) {
+    public void markMostPerfectRevelationPlaced(UUID playerId) {
         mostPerfectRevelationPlaced.put(playerId, true);
         markDirty();
     }
 
-        public Optional<BlockPos> getFinalArchiveLectern(UUID playerId) {
+    public Optional<BlockPos> getFinalArchiveLectern(UUID playerId) {
         Long pos = finalArchiveLectern.get(playerId);
         return pos == null ? Optional.empty() : Optional.of(BlockPos.fromLong(pos));
     }
 
-        public void setFinalArchiveLectern(UUID playerId, BlockPos pos) {
+    public void setFinalArchiveLectern(UUID playerId, BlockPos pos) {
         finalArchiveLectern.put(playerId, pos.asLong());
         markDirty();
     }
 
-        public boolean isRevelationDecoded(UUID playerId) {
+    public boolean isRevelationDecoded(UUID playerId) {
         return revelationDecoded.getOrDefault(playerId, false);
     }
 
-        public void markRevelationDecoded(UUID playerId) {
+    public void markRevelationDecoded(UUID playerId) {
         revelationDecoded.put(playerId, true);
         markDirty();
     }
 
-        public Optional<String> getEndingState(UUID playerId) {
+    public Optional<String> getEndingState(UUID playerId) {
         String state = endingState.get(playerId);
         return state == null || state.isBlank() ? Optional.empty() : Optional.of(state);
     }
 
-        public void setEndingState(UUID playerId, String ending) {
+    public void setEndingState(UUID playerId, String ending) {
         endingState.put(playerId, ending);
         markDirty();
     }
 
-        public boolean isObserverConvergence() {
+    public boolean isObserverConvergence() {
         return observerConvergence;
     }
 
-        public void markObserverConvergence(long tick) {
+    public void markObserverConvergence(long tick) {
         if (!observerConvergence) {
             observerConvergence = true;
             convergenceTick = tick;
@@ -423,15 +377,15 @@ public final class ObserverState extends PersistentState {
         }
     }
 
-        public long getConvergenceTick() {
+    public long getConvergenceTick() {
         return convergenceTick;
     }
 
-        public boolean isObserverDisabled() {
+    public boolean isObserverDisabled() {
         return observerDisabled;
     }
 
-        public void setObserverDisabled(boolean observerDisabled) {
+    public void setObserverDisabled(boolean observerDisabled) {
         if (this.observerDisabled != observerDisabled) {
             this.observerDisabled = observerDisabled;
             markDirty();

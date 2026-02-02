@@ -178,6 +178,11 @@ public final class HomeProfiler {
             }
         }
         if (best == null || best.getValue() < HOME_SCORE_THRESHOLD) {
+            if (best != null) {
+                BlockPos candidate = BlockPos.fromLong(best.getKey());
+                LogUtil.info("Home anchor candidate for " + player.getName().getString()
+                    + " is " + candidate + " (" + best.getValue() + "/" + HOME_SCORE_THRESHOLD + ")");
+            }
             return;
         }
 
@@ -213,6 +218,7 @@ public final class HomeProfiler {
         if (!(player instanceof ServerPlayerEntity serverPlayer)) {
             return;
         }
+        ServerWorld world = serverPlayer.getServerWorld();
         if (ObserverLifecycle.isObserverDisabled(world)) {
             return;
         }
