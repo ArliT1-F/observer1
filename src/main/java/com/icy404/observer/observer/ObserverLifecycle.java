@@ -1,18 +1,18 @@
-package.icy404.observer.observer;
+package com.icy404.observer.observer;
 
 import com.icy404.observer.TickManager;
 import com.icy404.observer.state.ObserverState;
 import net.minecraft.server.world.ServerWorld;
 
 public final class ObserverLifecycle {
-    private ObserverLifecycle(){
+    private ObserverLifecycle() {
     }
 
     public static boolean isObserverDisabled(ServerWorld world) {
         return ObserverState.get(world).isObserverDisabled();
     }
 
-    public static boolean shouldRun(Serverworld world) {
+    public static boolean shouldRun(ServerWorld world) {
         return !isObserverDisabled(world);
     }
 
