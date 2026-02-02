@@ -12,15 +12,17 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(BlockItem.class)
 public final class BlockItemMixin {
-	@Inject(method = "place", at = @At("RETURN"))
-	private void observer$onPlace(ItemPlacementContext context, CallbackInfoReturnable<ActionResult> cir) {
-		if (!cir.getReturnValue().isAccepted())
-			return;
-		if (context.getWorld().isClient())
-			return;
+    @Inject(method = "place", at = @At("RETURN"))
+    private void observer$onPlace(ItemPlacementContext context, CallbackInfoReturnable<ActionResult> cir) {
+        if (!cir.getReturnValue().isAccepted()) {
+            return;
+        }
+        if (context.getWorld().isClient()) {
+            return;
+        }
 
-		if (context.getPlayer() instanceof ServerPlayerEntity player) {
-			HomeProfiler.recordBlockPlace(player);
-		}
-	}
+        if (context.getPlayer() instanceof ServerPlayerEntity player) {
+            HomeProfiler.recordBlockPlace(player);
+        }
+    }
 }

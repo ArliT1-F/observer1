@@ -132,6 +132,7 @@ public final class GhostHouseManager {
         Box target = VisibilityUtil.boxFrom(min, max);
         return VisibilityUtil.isAreaObserved(world, target);
     }
+
     private static boolean isAreaClear(ServerWorld world, StructureSnapshot snapshot, BlockPos anchor) {
         BlockPos offset = anchor.subtract(snapshot.anchor());
         BlockPos min = snapshot.min().add(offset);
@@ -150,12 +151,15 @@ public final class GhostHouseManager {
         return true;
     }
 
-    private static void placeMarker(ServerWorld world, ServerPlayerEntity player, ObserverState state, List<GhstHousePlanner.Placement>placements, double fidelity, int attemptId, long day, boolean newPerfect) {
+    private static void placeMarker(ServerWorld world, ServerPlayerEntity player, ObserverState state,
+                                    List<GhostHousePlanner.Placement> placements, double fidelity, int attemptId,
+                                    long day, boolean newPerfect) {
         if (placements.isEmpty()) {
             return;
         }
         BlockPos entrance = placements.get(0).pos();
-        world.setBlockState(entrance, Blocks.LECTERN.getDefaultState().with(net.minecraft.block.LecternBlock.FACING, Deirection.NORTH));
+        world.setBlockState(entrance,
+            Blocks.LECTERN.getDefaultState().with(net.minecraft.block.LecternBlock.FACING, Direction.NORTH));
         if (world.getBlockEntity(entrance) instanceof net.minecraft.block.entity.LecternBlockEntity lectern) {
             NbtCompound tag = new NbtCompound();
             tag.putString("title", "ITERATION " + String.format("%02d", attemptId));
@@ -184,7 +188,7 @@ public final class GhostHouseManager {
         }
     }
 
-        private static long seed(UUID playerId, long day, int attemptId) {
+    private static long seed(UUID playerId, long day, int attemptId) {
         long seed = playerId.getMostSignificantBits() ^ playerId.getLeastSignificantBits();
         seed ^= day * 0x9E3779B97F4A7C15L;
         seed ^= (long) attemptId * 0xBF58476D1CE4E5B9L;

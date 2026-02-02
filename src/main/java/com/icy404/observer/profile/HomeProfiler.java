@@ -213,6 +213,7 @@ public final class HomeProfiler {
         if (!(player instanceof ServerPlayerEntity serverPlayer)) {
             return;
         }
+        ServerWorld world = serverPlayer.getServerWorld();
         if (ObserverLifecycle.isObserverDisabled(world)) {
             return;
         }
